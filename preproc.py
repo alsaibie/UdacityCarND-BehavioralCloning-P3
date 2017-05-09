@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sklearn
 from sklearn.utils import shuffle
+import sgsmooth as smooth
 
 ############# Configuration ####################
 datafolder  = 'data'
@@ -11,6 +12,7 @@ modelsave   = 'model8.h5'
 toBlur      = True
 toNoise     = True
 toPlot      = True
+toSmooth    = True
 ################################################
 
 #Import CSV Data
@@ -26,7 +28,15 @@ def findIndices(lst, a):
     return [i for i, x in enumerate(lst) if x == a]
 
 def clean(samples):
-    print("Starting Sample Size: ", len(samples))
+    print("Starting sample size: ", len(samples))
+    #try to smooth angle data. Theory it will spread angles a bit away from flat zero.
+    if toSmooth:  
+        angl = np.array([float(row[3]) for row in samples])
+        anglesmooth = smooth.savitzky_golay(angl, 15, 5)
+        # return angle data back like nothing happened. 
+        for ind, sample in enumerate(samples):
+            sample[3] = anglesmooth[ind]
+
     samples = shuffle(samples)
 	#ignore slow speed frames
     num_popped_slow = 0
@@ -50,10 +60,9 @@ def clean(samples):
             samples.remove(sample)
             num_popped_zeroangle += 1
     
-    print("Popped Slow: ", num_popped_slow)
-    print("Popped Zero Angle: ", num_popped_zeroangle)
+    print("Samples popped for low speed: ", num_popped_slow)
+    print("Samples popped for excess zero angles: ", num_popped_zeroangle)
     return samples
-
 
 samples = clean(samples)
 
@@ -75,15 +84,15 @@ def get_angle_hist(samples):
 		
 def preprocess(im):
     # resize
-    im = cv2.resize(im,(320,160), interpolation = cv2.INTER_AREA)
+    #im = cv2.resize(im,(320,160), interpolation = cv2.INTER_AREA)
     # convert to YUV
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2YUV)
+    #im = cv2.cvtColor(im, cv2.COLOR_BGR2YUV)
     return im
 
 def generator(samples, batch_size = 16):
     num_samples = len(samples)
     # Steering angle adjustment for left and right images
-    steering_correction = 0.25
+    steering_correction = 0.35
     while 1:
         samples = shuffle(samples)
         for offset in range(0, num_samples, batch_size):
@@ -92,11 +101,11 @@ def generator(samples, batch_size = 16):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                # For windows simulator data use split('\\')
-                nameleft, namecenter, nameright = './data/IMG/'+batch_sample[1].split('/')[-1], './data/IMG/'+batch_sample[0].split('/')[-1], './data/IMG/'+batch_sample[2].split('/')[-1]
-                # nameleft, namecenter, nameright = datafolder + '/IMG/'+batch_sample[1].split(
-                #     '\\')[-1], datafolder + '/IMG/'+batch_sample[0].split(
-                #     '\\')[-1], datafolder + '/IMG/'+batch_sample[2].split('\\')[-1]
+                # For windows simulator data use split('\\')           
+                #nameleft, namecenter, nameright = './data/IMG/'+batch_sample[1].split('/')[-1], './data/IMG/'+batch_sample[0].split('/')[-1], './data/IMG/'+batch_sample[2].split('/')[-1]
+                nameleft, namecenter, nameright = datafolder + '/IMG/'+batch_sample[1].split(
+                     '\\')[-1], datafolder + '/IMG/'+batch_sample[0].split(
+                     '\\')[-1], datafolder + '/IMG/'+batch_sample[2].split('\\')[-1]
                 left_image, center_image, right_image = preprocess(cv2.imread(nameleft)), preprocess(
                     cv2.imread(namecenter)), preprocess(cv2.imread(nameright))
                 center_angle = float(batch_sample[3])

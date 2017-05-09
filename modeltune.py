@@ -1,4 +1,4 @@
-import preprocess
+import preproc
 
 # Configure Keras
 from keras.models import Sequential
@@ -44,15 +44,15 @@ layers_to_pop_weights = 9
 # for layer in model.layers[:-layers_to_pop_weights]:
 # 	layer.trainable = False
 	
-model.compile(loss='mse', optimizer='adam',  metrics=['accuracy'] )
+# ignore compile for now since we are not chaning anything 
+# model.compile(loss='mse', optimizer='adam',  metrics=['accuracy'] )
 print(model.summary())
-train_gen = preprocess.train_generator
-valid_gen = preprocess.validation_generator
-train_len = preprocess.train_sample_len
-valid_len = preprocess.valid_sample_len
+train_gen = preproc.train_generator
+valid_gen = preproc.validation_generator
+train_len = preproc.train_sample_len
+valid_len = preproc.valid_sample_len
 model.fit_generator(train_gen, samples_per_epoch= train_len, 
                     validation_data=valid_gen, nb_val_samples=valid_len, 
-                    verbose=1, nb_epoch=4)
-                    
+                    verbose=1, nb_epoch=5)
                     
 model.save('model7.h5')
